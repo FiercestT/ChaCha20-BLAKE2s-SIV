@@ -38,10 +38,10 @@ static int benchmark_size(
     uint8_t* const ciphertext = malloc(ALLOCATION_SIZE);
     uint8_t* const changed_ciphertext = malloc(ALLOCATION_SIZE);
     uint8_t* const decrypted = malloc(ALLOCATION_SIZE);
-    uint8_t nonce[CHACHA20_NONCELEN];
+    cc20_b2s_siv_chacha20_nonce_t nonce;
     uint8_t ad[AD_LEN];
-    uint8_t iv[CC20_B2S_SIV_IVLEN];
-    uint8_t changed_iv[CC20_B2S_SIV_IVLEN];
+    cc20_b2s_siv_iv_t iv;
+    cc20_b2s_siv_iv_t changed_iv;
     cc20_b2s_siv_res_t result = SIV_OK;
     clock_t start;
     double elapsed;
@@ -182,7 +182,7 @@ static void benchmark_initialization(void) {
     enum { ITERATIONS = 100000 };
 
     cc20_b2s_ctx_t ctx;
-    uint8_t key[MASTER_KEYLEN];
+    cc20_b2s_siv_master_key_t key;
     clock_t start;
     double elapsed;
 

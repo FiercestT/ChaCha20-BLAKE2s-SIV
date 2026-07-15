@@ -102,7 +102,7 @@ void ChaCha20_xor(ChaCha20_Ctx* ctx, uint8_t* buffer, size_t bufflen);
 
 #include <assert.h>
 
-static const char CHACHA20_CONSTANT[16] = "expand 32-byte k";
+__attribute__((nonstring)) static const char CHACHA20_CONSTANT[16] = "expand 32-byte k";
 
 static inline uint32_t CHACHA20_ROTL(const uint32_t x, const uint32_t n) {
     return (x << n) | (x >> (32U - n));

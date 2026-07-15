@@ -2,7 +2,6 @@
 #define CC20_B2S_SIV_H
 
 #include "cc20_b2s_siv_types.h"
-#include "stddef.h"
 
 /**
  * @brief Initialize the IV context by deriving keys from the master key.
@@ -10,10 +9,18 @@
  * @param master_key The master key to derive keys from.
  * @param ctx The context stores the subkeys.
  */
-void cc20_b2s_siv_init(
-    const uint8_t master_key[const MASTER_KEYLEN], 
-    cc20_b2s_ctx_t* const ctx
-);
+void cc20_b2s_siv_init(const cc20_b2s_siv_master_key_t master_key, cc20_b2s_ctx_t* const ctx);
+
+/**
+ * @brief Add a value to a nonce.
+ *
+ * The nonce is interpreted as a 96-bit little-endian integer. Overflow wraps
+ * modulo 2^96.
+ *
+ * @param nonce The nonce to update.
+ * @param n The value to add.
+ */
+void cc20_b2s_siv_increment_nonce(cc20_b2s_siv_chacha20_nonce_t nonce, uint32_t n);
 
 /**
  * @brief Encrypt a plaintext and authenticate associated data using the ChaCha20-Blake2s-SIV mode.
@@ -36,9 +43,9 @@ cc20_b2s_siv_res_t cc20_b2s_siv_encrypt(
     const uint8_t plaintext[const plaintext_len],
     size_t ad_len,
     const uint8_t ad[const ad_len],
-    const uint8_t nonce[const CHACHA20_NONCELEN],
+    const cc20_b2s_siv_chacha20_nonce_t nonce,
     uint8_t ciphertext[const plaintext_len], // Out
-    uint8_t iv[const CC20_B2S_SIV_IVLEN]     // Out
+    cc20_b2s_siv_iv_t iv                    // Out
 );
 
 /**
@@ -63,8 +70,8 @@ cc20_b2s_siv_res_t cc20_b2s_siv_decrypt(
     const uint8_t ciphertext[const ciphertext_len],
     size_t ad_len,
     const uint8_t ad[const ad_len],
-    const uint8_t nonce[const CHACHA20_NONCELEN],
-    const uint8_t iv[const CC20_B2S_SIV_IVLEN],
+    const cc20_b2s_siv_chacha20_nonce_t nonce,
+    const cc20_b2s_siv_iv_t iv,
     uint8_t plaintext[const ciphertext_len] // Out
 );
 

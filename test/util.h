@@ -35,7 +35,7 @@ static inline void make_context(
     cc20_b2s_ctx_t* const ctx,
     uint8_t seed
 ) {
-    uint8_t key[MASTER_KEYLEN];
+    cc20_b2s_siv_master_key_t key;
 
     fill_bytes(key, sizeof(key), seed);
     cc20_b2s_siv_init(key, ctx);

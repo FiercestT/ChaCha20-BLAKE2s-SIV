@@ -1,11 +1,12 @@
 #include "stdint.h"
 #include "stdio.h"
+#include "string.h"
 
 #include "cc20_b2s_siv.h"
 
 // Demo Key. Never use this.
-const uint8_t MASTER_KEY[MASTER_KEYLEN] = { 0x00, 0x01, 0x02, 0x03, 0 };
-uint8_t nonce [CHACHA20_NONCELEN] = { 0 };
+const cc20_b2s_siv_master_key_t MASTER_KEY = { 0x00, 0x01, 0x02, 0x03, 0 };
+cc20_b2s_siv_chacha20_nonce_t nonce = { 0 };
 
 int main(void) {
     // Init
@@ -13,21 +14,17 @@ int main(void) {
     cc20_b2s_siv_init(MASTER_KEY, &ctx);
 
     // Encrypt
-    const uint8_t plaintext[11] = "Hello World"; // Ignore \0.
-    const uint8_t ad[2] = "AD"; 
+    __attribute__((nonstring)) const uint8_t plaintext[11] = "Hello World";
+    __attribute__((nonstring)) const uint8_t ad[2] = "AD"; 
     uint8_t ciphertext[sizeof(plaintext)] = { 0 };
-    uint8_t iv[CC20_B2S_SIV_IVLEN] = { 0 };
+    cc20_b2s_siv_iv_t iv = { 0 };
+    cc20_b2s_siv_chacha20_nonce_t message_nonce;
 
-    cc20_b2s_siv_res_t result = cc20_b2s_siv_encrypt(
-        &ctx,
-        sizeof(plaintext), plaintext,
-        sizeof(ad), ad,
-        nonce,
-        ciphertext, iv
-    );
+    memcpy(message_nonce, nonce, sizeof(nonce));
+    cc20_b2s_siv_res_t result = cc20_b2s_siv_encrypt(&ctx, sizeof(plaintext), plaintext, sizeof(ad), ad, nonce, ciphertext, iv);
 
-    // !Increment Nonce after encrypting (each nonce must only be used once under the same key).
-    //nonce++;
+    // Increment nonce after encrypting. Each nonce should be used only once per key.
+    cc20_b2s_siv_increment_nonce(nonce, 1);
 
     if(result != SIV_OK) {
         printf("Encryption failed\n");
@@ -40,19 +37,14 @@ int main(void) {
     // Optional: Tamper with the ciphertext. Verification will fail.
     //ciphertext[0] = 0x00;
     
-    result = cc20_b2s_siv_decrypt(
-        &ctx,
-        sizeof(plaintext), ciphertext,
-        sizeof(ad), ad,
-        nonce, iv,
-        decrypted
-    );
+    result = cc20_b2s_siv_decrypt(&ctx, sizeof(plaintext), ciphertext, sizeof(ad), ad, message_nonce, iv, decrypted);
 
     switch(result) {
         case SIV_OK:
             break;
         case SIV_VERIFICATION_FAILED:
             printf("Verification failed\n");
+            return 1;
         default: 
             printf("Decryption failed (%d)\n", result);
             return 1;

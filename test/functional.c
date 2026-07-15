@@ -28,14 +28,14 @@ static void test_round_trip(
     size_t ad_len
 ) {
     cc20_b2s_ctx_t ctx;
-    uint8_t nonce[CHACHA20_NONCELEN];
+    cc20_b2s_siv_chacha20_nonce_t nonce;
     uint8_t plaintext[TEST_BUFFER_SIZE];
     uint8_t ciphertext[TEST_BUFFER_SIZE];
     uint8_t ciphertext_again[TEST_BUFFER_SIZE];
     uint8_t decrypted[TEST_BUFFER_SIZE];
     uint8_t ad[TEST_BUFFER_SIZE];
-    uint8_t iv[CC20_B2S_SIV_IVLEN];
-    uint8_t iv_again[CC20_B2S_SIV_IVLEN];
+    cc20_b2s_siv_iv_t iv;
+    cc20_b2s_siv_iv_t iv_again;
 
     CHECK(plaintext_len <= sizeof(plaintext));
     CHECK(ad_len <= sizeof(ad));
@@ -105,8 +105,8 @@ static void expect_verification_failure(
     const uint8_t ciphertext[const ciphertext_len],
     size_t ad_len,
     const uint8_t ad[const ad_len],
-    const uint8_t nonce[const CHACHA20_NONCELEN],
-    const uint8_t iv[const CC20_B2S_SIV_IVLEN]
+    const cc20_b2s_siv_chacha20_nonce_t nonce,
+    const cc20_b2s_siv_iv_t iv
 ) {
     uint8_t decrypted[TEST_BUFFER_SIZE];
 
@@ -134,15 +134,15 @@ static void test_verification_failures(void) {
 
     cc20_b2s_ctx_t ctx;
     cc20_b2s_ctx_t wrong_ctx;
-    uint8_t nonce[CHACHA20_NONCELEN];
-    uint8_t changed_nonce[CHACHA20_NONCELEN];
+    cc20_b2s_siv_chacha20_nonce_t nonce;
+    cc20_b2s_siv_chacha20_nonce_t changed_nonce;
     uint8_t plaintext[PLAINTEXT_LEN];
     uint8_t ciphertext[PLAINTEXT_LEN];
     uint8_t changed_ciphertext[PLAINTEXT_LEN];
     uint8_t ad[AD_LEN];
     uint8_t changed_ad[AD_LEN];
-    uint8_t iv[CC20_B2S_SIV_IVLEN];
-    uint8_t changed_iv[CC20_B2S_SIV_IVLEN];
+    cc20_b2s_siv_iv_t iv;
+    cc20_b2s_siv_iv_t changed_iv;
 
     make_context(&ctx, 0x11U);
     make_context(&wrong_ctx, 0x12U);
@@ -195,10 +195,10 @@ static void test_verification_failures(void) {
 static void test_empty_inputs(void) {
     cc20_b2s_ctx_t ctx;
     uint8_t placeholder = 0;
-    uint8_t nonce[CHACHA20_NONCELEN];
+    cc20_b2s_siv_chacha20_nonce_t nonce;
     uint8_t ad[17];
     uint8_t changed_ad[17];
-    uint8_t iv[CC20_B2S_SIV_IVLEN];
+    cc20_b2s_siv_iv_t iv;
 
     make_context(&ctx, 0x91U);
     fill_bytes(nonce, sizeof(nonce), 0x37U);
@@ -227,12 +227,28 @@ static void test_empty_inputs(void) {
     );
 }
 
+static void test_increment_nonce(void) {
+    cc20_b2s_siv_chacha20_nonce_t nonce = {
+        0xFEU, 0xFFU, 0x00U
+    };
+    const cc20_b2s_siv_chacha20_nonce_t expected = {
+        0x00U, 0x01U, 0x01U
+    };
+
+    cc20_b2s_siv_increment_nonce(nonce, UINT32_C(0x0102));
+    CHECK(memcmp(nonce, expected, sizeof(nonce)) == 0);
+
+    memset(nonce, 0xFF, sizeof(nonce));
+    cc20_b2s_siv_increment_nonce(nonce, 1);
+    CHECK(all_zero(nonce, sizeof(nonce)));
+}
+
 static void test_length_limit(void) {
 #if SIZE_MAX > UINT32_MAX
     cc20_b2s_ctx_t ctx;
     uint8_t placeholder = 0;
-    uint8_t nonce[CHACHA20_NONCELEN] = { 0 };
-    uint8_t iv[CC20_B2S_SIV_IVLEN] = { 0 };
+    cc20_b2s_siv_chacha20_nonce_t nonce = { 0 };
+    cc20_b2s_siv_iv_t iv = { 0 };
     volatile size_t invalid_len = ((size_t)1U << 38) + 1U;
 
     make_context(&ctx, 0x19U);
@@ -257,6 +273,7 @@ static void test_length_limit(void) {
 int main(void) {
     test_round_trips();
     test_empty_inputs();
+    test_increment_nonce();
     test_verification_failures();
     test_length_limit();
 
