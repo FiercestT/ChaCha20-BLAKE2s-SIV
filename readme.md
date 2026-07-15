@@ -44,9 +44,9 @@ EtM vs SIV:
 // | = concatenation
 
 ifdef (CC20_B2S_SIV_128)
-    MAC_SIZE[16B]
+    MAC_SIZE=16B
 ifdef (CC20_B2S_SIV_256)
-    MAC_SIZE[32B]
+    MAC_SIZE=32B
 
 MASTER_KEY[256b]
 
