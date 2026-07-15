@@ -1,0 +1,21 @@
+# Build directories
+build/
+out/
+cmake-build-*/
+
+# Compiled files
+*.a
+*.bin
+*.elf
+*.exe
+*.hex
+*.lib
+*.map
+*.o
+*.obj
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
