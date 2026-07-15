@@ -1,14 +1,14 @@
-# ChaCha20-Blake2s-SIV
+# ChaCha20-BLAKE2s-SIV
 
-A C implementation of a Synthetic Initialization Vector (SIV) construction using ChaCha20 and Blake2s.
+A C implementation of a Synthetic Initialization Vector (SIV) construction using ChaCha20 and BLAKE2s.
 
 This repo is not independently reviewed or proven secure. Use at your own risk.
 
 ## Construction
 
 Modes:
-- cc20-b2s-siv-128: ChaCha20-Blake2s-SIV with 128-bit IV Tag.
-- cc20-b2s-siv-256: ChaCha20-Blake2s-SIV with 256-bit IV Tag.
+- cc20-b2s-siv-128: ChaCha20-BLAKE2s-SIV with 128-bit IV Tag.
+- cc20-b2s-siv-256: ChaCha20-BLAKE2s-SIV with 256-bit IV Tag.
 
 Input:
 - Key[256b]: A master key from which subkeys are derived from.
@@ -18,11 +18,11 @@ Input:
 
 Output:
 - Ciphertext[Plaintext_Len]: The encrypted ciphertext.
-- IV[256b or 128b]: The IV/MAC/Tag (same meaning in this case) that authenticates the ciphertext. Selectable between 256b and 128b depending on the used mode. This is the Blake2s digest size, not truncated.
+- IV[256b or 128b]: The IV/MAC/Tag (same meaning in this case) that authenticates the ciphertext. Selectable between 256b and 128b depending on the used mode. This is the BLAKE2s digest size, not truncated.
 
 Idea:
-- Build a ChaCha20-Blake2s SIV based mode of AEAD.
-- Use Blake2s as a subkey KDF for ChaCha20 as opposed to using XChaCha20 while still accomplishing an extended nonce to fit the IV (the speed was not compared, it was a design choice to use the existing Blake2s for key derivation instead of implementing HChaCha20).
+- Build a ChaCha20-BLAKE2s SIV based mode of AEAD.
+- Use BLAKE2s as a subkey KDF for ChaCha20 as opposed to using XChaCha20 while still accomplishing an extended nonce to fit the IV (the speed was not compared, it was a design choice to use the existing BLAKE2s for key derivation instead of implementing HChaCha20).
 - This design is intended for inexpensive embedded use and pure software implementation. It is more optimized for size than speed.
 
 Notes:
@@ -44,13 +44,13 @@ EtM vs SIV:
 // | = concatenation
 
 ifdef (CC20_B2S_SIV_128)
-    MAC_SIZE[16B]
+    MAC_SIZE = 16B
 ifdef (CC20_B2S_SIV_256)
-    MAC_SIZE[32B]
+    MAC_SIZE = 32B
 
 MASTER_KEY[256b]
 
-// Compute subkeys based on the master keys once.
+// Compute subkeys based on the master key once.
 func init():
     enc_key[256b] = blake2s( // KDF
         key: MASTER_KEY
@@ -140,7 +140,7 @@ func decrypt(
 
 ## Primitive Implementations Used
 - ChaCha20: Slightly modified from https://github.com/marcizhu/ChaCha20 (Quarter round macros were turned into inline functions for space saving).
-- Blake2s: Slightly modified reference implementation from https://github.com/BLAKE2/BLAKE2 (Unused code was cut for space savings).
+- BLAKE2s: Slightly modified reference implementation from https://github.com/BLAKE2/BLAKE2 (Unused code was cut for space savings).
 
 ## Code Size
 When compiled for ARM M3. Library only (/src, /include, /lib). cc20-b2s-siv-256.
