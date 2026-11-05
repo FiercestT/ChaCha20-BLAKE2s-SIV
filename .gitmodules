@@ -1,0 +1,4 @@
+[submodule "lib/ChaChaSlide"]
+	path = lib/ChaChaSlide
+	url = https://github.com/FiercestT/ChaChaSlide.git
+	branch = main

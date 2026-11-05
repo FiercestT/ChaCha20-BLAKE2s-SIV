@@ -27,15 +27,15 @@ static void test_round_trip(
     size_t plaintext_len,
     size_t ad_len
 ) {
-    cc20_b2s_ctx_t ctx;
-    cc20_b2s_siv_chacha20_nonce_t nonce;
+    cbsiv_ctx_t ctx;
+    cbsiv_chacha20_nonce_t nonce;
     uint8_t plaintext[TEST_BUFFER_SIZE];
     uint8_t ciphertext[TEST_BUFFER_SIZE];
     uint8_t ciphertext_again[TEST_BUFFER_SIZE];
     uint8_t decrypted[TEST_BUFFER_SIZE];
     uint8_t ad[TEST_BUFFER_SIZE];
-    cc20_b2s_siv_iv_t iv;
-    cc20_b2s_siv_iv_t iv_again;
+    cbsiv_iv_t iv;
+    cbsiv_iv_t iv_again;
 
     CHECK(plaintext_len <= sizeof(plaintext));
     CHECK(ad_len <= sizeof(ad));
@@ -48,30 +48,30 @@ static void test_round_trip(
     fill_bytes(plaintext, sizeof(plaintext), 0x63U);
     fill_bytes(ad, sizeof(ad), 0x84U);
 
-    CHECK(cc20_b2s_siv_encrypt(
+    CHECK(cbsiv_encrypt(
         &ctx,
         plaintext_len, plaintext,
         ad_len, ad,
         nonce,
         ciphertext, iv
-    ) == SIV_OK);
+    ) == CBSIV_OK);
 
-    CHECK(cc20_b2s_siv_decrypt(
+    CHECK(cbsiv_decrypt(
         &ctx,
         plaintext_len, ciphertext,
         ad_len, ad,
         nonce, iv,
         decrypted
-    ) == SIV_OK);
+    ) == CBSIV_OK);
     CHECK(memcmp(plaintext, decrypted, plaintext_len) == 0);
 
-    CHECK(cc20_b2s_siv_encrypt(
+    CHECK(cbsiv_encrypt(
         &ctx,
         plaintext_len, plaintext,
         ad_len, ad,
         nonce,
         ciphertext_again, iv_again
-    ) == SIV_OK);
+    ) == CBSIV_OK);
     CHECK(memcmp(ciphertext, ciphertext_again, plaintext_len) == 0);
     CHECK(memcmp(iv, iv_again, sizeof(iv)) == 0);
 }
@@ -100,13 +100,13 @@ static void test_round_trips(void) {
 }
 
 static void expect_verification_failure(
-    const cc20_b2s_ctx_t* const ctx,
+    const cbsiv_ctx_t* const ctx,
     size_t ciphertext_len,
     const uint8_t ciphertext[const ciphertext_len],
     size_t ad_len,
     const uint8_t ad[const ad_len],
-    const cc20_b2s_siv_chacha20_nonce_t nonce,
-    const cc20_b2s_siv_iv_t iv
+    const cbsiv_chacha20_nonce_t nonce,
+    const cbsiv_iv_t iv
 ) {
     uint8_t decrypted[TEST_BUFFER_SIZE];
 
@@ -116,13 +116,13 @@ static void expect_verification_failure(
     }
 
     memset(decrypted, 0xA5, sizeof(decrypted));
-    CHECK(cc20_b2s_siv_decrypt(
+    CHECK(cbsiv_decrypt(
         ctx,
         ciphertext_len, ciphertext,
         ad_len, ad,
         nonce, iv,
         decrypted
-    ) == SIV_VERIFICATION_FAILED);
+    ) == CBSIV_VERIFICATION_FAILED);
     CHECK(all_zero(decrypted, ciphertext_len));
 }
 
@@ -132,17 +132,17 @@ static void test_verification_failures(void) {
         AD_LEN = 33
     };
 
-    cc20_b2s_ctx_t ctx;
-    cc20_b2s_ctx_t wrong_ctx;
-    cc20_b2s_siv_chacha20_nonce_t nonce;
-    cc20_b2s_siv_chacha20_nonce_t changed_nonce;
+    cbsiv_ctx_t ctx;
+    cbsiv_ctx_t wrong_ctx;
+    cbsiv_chacha20_nonce_t nonce;
+    cbsiv_chacha20_nonce_t changed_nonce;
     uint8_t plaintext[PLAINTEXT_LEN];
     uint8_t ciphertext[PLAINTEXT_LEN];
     uint8_t changed_ciphertext[PLAINTEXT_LEN];
     uint8_t ad[AD_LEN];
     uint8_t changed_ad[AD_LEN];
-    cc20_b2s_siv_iv_t iv;
-    cc20_b2s_siv_iv_t changed_iv;
+    cbsiv_iv_t iv;
+    cbsiv_iv_t changed_iv;
 
     make_context(&ctx, 0x11U);
     make_context(&wrong_ctx, 0x12U);
@@ -150,13 +150,13 @@ static void test_verification_failures(void) {
     fill_bytes(plaintext, sizeof(plaintext), 0x45U);
     fill_bytes(ad, sizeof(ad), 0x67U);
 
-    CHECK(cc20_b2s_siv_encrypt(
+    CHECK(cbsiv_encrypt(
         &ctx,
         sizeof(plaintext), plaintext,
         sizeof(ad), ad,
         nonce,
         ciphertext, iv
-    ) == SIV_OK);
+    ) == CBSIV_OK);
 
     memcpy(changed_iv, iv, sizeof(iv));
     changed_iv[0] ^= 0x01U;
@@ -193,31 +193,31 @@ static void test_verification_failures(void) {
 }
 
 static void test_empty_inputs(void) {
-    cc20_b2s_ctx_t ctx;
+    cbsiv_ctx_t ctx;
     uint8_t placeholder = 0;
-    cc20_b2s_siv_chacha20_nonce_t nonce;
+    cbsiv_chacha20_nonce_t nonce;
     uint8_t ad[17];
     uint8_t changed_ad[17];
-    cc20_b2s_siv_iv_t iv;
+    cbsiv_iv_t iv;
 
     make_context(&ctx, 0x91U);
     fill_bytes(nonce, sizeof(nonce), 0x37U);
     fill_bytes(ad, sizeof(ad), 0x73U);
 
-    CHECK(cc20_b2s_siv_encrypt(
+    CHECK(cbsiv_encrypt(
         &ctx,
         0, &placeholder,
         sizeof(ad), ad,
         nonce,
         &placeholder, iv
-    ) == SIV_OK);
-    CHECK(cc20_b2s_siv_decrypt(
+    ) == CBSIV_OK);
+    CHECK(cbsiv_decrypt(
         &ctx,
         0, &placeholder,
         sizeof(ad), ad,
         nonce, iv,
         &placeholder
-    ) == SIV_OK);
+    ) == CBSIV_OK);
 
     memcpy(changed_ad, ad, sizeof(ad));
     changed_ad[0] ^= 1U;
@@ -228,45 +228,45 @@ static void test_empty_inputs(void) {
 }
 
 static void test_increment_nonce(void) {
-    cc20_b2s_siv_chacha20_nonce_t nonce = {
+    cbsiv_chacha20_nonce_t nonce = {
         0xFEU, 0xFFU, 0x00U
     };
-    const cc20_b2s_siv_chacha20_nonce_t expected = {
+    const cbsiv_chacha20_nonce_t expected = {
         0x00U, 0x01U, 0x01U
     };
 
-    cc20_b2s_siv_increment_nonce(nonce, UINT32_C(0x0102));
+    cbsiv_increment_nonce(nonce, UINT32_C(0x0102));
     CHECK(memcmp(nonce, expected, sizeof(nonce)) == 0);
 
     memset(nonce, 0xFF, sizeof(nonce));
-    cc20_b2s_siv_increment_nonce(nonce, 1);
+    cbsiv_increment_nonce(nonce, 1);
     CHECK(all_zero(nonce, sizeof(nonce)));
 }
 
 static void test_length_limit(void) {
 #if SIZE_MAX > UINT32_MAX
-    cc20_b2s_ctx_t ctx;
+    cbsiv_ctx_t ctx;
     uint8_t placeholder = 0;
-    cc20_b2s_siv_chacha20_nonce_t nonce = { 0 };
-    cc20_b2s_siv_iv_t iv = { 0 };
+    cbsiv_chacha20_nonce_t nonce = { 0 };
+    cbsiv_iv_t iv = { 0 };
     volatile size_t invalid_len = ((size_t)1U << 38) + 1U;
 
     make_context(&ctx, 0x19U);
 
-    CHECK(cc20_b2s_siv_encrypt(
+    CHECK(cbsiv_encrypt(
         &ctx,
         invalid_len, &placeholder,
         0, &placeholder,
         nonce,
         &placeholder, iv
-    ) == SIV_INVALID_LENGTH);
-    CHECK(cc20_b2s_siv_decrypt(
+    ) == CBSIV_INVALID_LENGTH);
+    CHECK(cbsiv_decrypt(
         &ctx,
         invalid_len, &placeholder,
         0, &placeholder,
         nonce, iv,
         &placeholder
-    ) == SIV_INVALID_LENGTH);
+    ) == CBSIV_INVALID_LENGTH);
 #endif
 }
 
@@ -279,15 +279,15 @@ int main(void) {
 
     if(test_failures != 0) {
         fprintf(
-            stderr, "cc20-b2s-siv-%u functional tests: %d failure(s)\n",
-            CC20_B2S_SIV_IVLEN * 8, test_failures
+            stderr, "cbsiv-%u functional tests: %d failure(s)\n",
+            CBSIV_IVLEN * 8, test_failures
         );
         return 1;
     }
 
     printf(
-        "cc20-b2s-siv-%u functional tests: passed\n",
-        CC20_B2S_SIV_IVLEN * 8U
+        "cbsiv-%u functional tests: passed\n",
+        CBSIV_IVLEN * 8U
     );
     return 0;
 }

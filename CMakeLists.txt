@@ -1,52 +1,38 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(ChaCha20-Blake2s-SIV C)
+project(cbsiv C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 
-if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic -O3)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
-set(
-    SIV_SOURCES
-    src/cc20_b2s_siv.c
-    lib/blake2s.c
-    lib/memzero.c
-)
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-add_library(cc20_b2s_siv_128 STATIC ${SIV_SOURCES})
-target_compile_definitions(cc20_b2s_siv_128 PUBLIC CC20_B2S_SIV_128)
-target_include_directories(cc20_b2s_siv_128 PUBLIC include PRIVATE lib)
-
-add_library(cc20_b2s_siv_256 STATIC ${SIV_SOURCES})
-target_compile_definitions(cc20_b2s_siv_256 PUBLIC CC20_B2S_SIV_256)
-target_include_directories(cc20_b2s_siv_256 PUBLIC include PRIVATE lib)
-
-add_executable(functional_128 test/functional.c)
-target_link_libraries(functional_128 PRIVATE cc20_b2s_siv_128)
-
-add_executable(functional_256 test/functional.c)
-target_link_libraries(functional_256 PRIVATE cc20_b2s_siv_256)
-
-add_executable(benchmark_128 test/benchmark.c)
-target_link_libraries(benchmark_128 PRIVATE cc20_b2s_siv_128)
-
-add_executable(benchmark_256 test/benchmark.c)
-target_link_libraries(benchmark_256 PRIVATE cc20_b2s_siv_256)
-
-add_executable(example example/example.c)
-target_link_libraries(example PRIVATE cc20_b2s_siv_256)
-
-add_custom_target(
-    run_example
-    COMMAND $<TARGET_FILE:example>
-    DEPENDS example
-    USES_TERMINAL
-)
+add_subdirectory(lib/ChaChaSlide)
 
 enable_testing()
-add_test(NAME functional_128 COMMAND functional_128)
-add_test(NAME functional_256 COMMAND functional_256)
+foreach(bits IN ITEMS 128 256)
+    add_library(cbsiv_${bits} STATIC cbsiv.c)
+    target_compile_definitions(cbsiv_${bits} PUBLIC CBSIV_${bits})
+    target_include_directories(cbsiv_${bits} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(cbsiv_${bits} PRIVATE
+        $<IF:$<CONFIG:MinSizeRel>,ccs-size,ccs-speed>
+    )
+
+    foreach(program IN ITEMS functional benchmark)
+        add_executable(${program}_${bits} test/${program}.c)
+        target_link_libraries(${program}_${bits} PRIVATE cbsiv_${bits})
+    endforeach()
+    add_test(NAME functional_${bits} COMMAND functional_${bits})
+endforeach()
+
+add_executable(example example/example.c)
+target_link_libraries(example PRIVATE cbsiv_256)
+add_custom_target(run_example COMMAND $<TARGET_FILE:example> DEPENDS example USES_TERMINAL)

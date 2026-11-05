@@ -1,12 +1,12 @@
-#ifndef CC20_B2S_SIV_TEST_UTIL_H
-#define CC20_B2S_SIV_TEST_UTIL_H
+#ifndef CBSIV_TEST_UTIL_H
+#define CBSIV_TEST_UTIL_H
 
 #include "stddef.h"
 #include "stdint.h"
 #include "stdio.h"
 #include "time.h"
 
-#include "cc20_b2s_siv.h"
+#include "cbsiv.h"
 
 static inline void fill_bytes(
     uint8_t* const buffer,
@@ -32,13 +32,13 @@ static inline uint8_t all_zero(
 }
 
 static inline void make_context(
-    cc20_b2s_ctx_t* const ctx,
+    cbsiv_ctx_t* const ctx,
     uint8_t seed
 ) {
-    cc20_b2s_siv_master_key_t key;
+    cbsiv_master_key_t key;
 
     fill_bytes(key, sizeof(key), seed);
-    cc20_b2s_siv_init(key, ctx);
+    cbsiv_init(key, ctx);
 }
 
 static inline double seconds_since(clock_t start) {
@@ -71,4 +71,4 @@ static inline void print_timing(
     );
 }
 
-#endif // CC20_B2S_SIV_TEST_UTIL_H
+#endif // CBSIV_TEST_UTIL_H
