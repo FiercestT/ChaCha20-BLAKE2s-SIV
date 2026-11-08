@@ -10,7 +10,7 @@ cbsiv_chacha20_nonce_t nonce = { 0 };
 int main(void) {
     // Init
     cbsiv_ctx_t ctx = { 0 };
-    cbsiv_init(MASTER_KEY, &ctx);
+    cbsiv_init(&ctx, MASTER_KEY);
 
     // Encrypt
     __attribute__((nonstring)) const uint8_t plaintext[11] = "Hello World";
@@ -20,7 +20,7 @@ int main(void) {
     cbsiv_chacha20_nonce_t message_nonce;
 
     memcpy(message_nonce, nonce, sizeof(nonce));
-    cbsiv_res_t result = cbsiv_encrypt(&ctx, sizeof(plaintext), plaintext, sizeof(ad), ad, nonce, ciphertext, iv);
+    cbsiv_res_t result = cbsiv_encrypt(&ctx, nonce, sizeof(plaintext), plaintext, sizeof(ad), ad, ciphertext, iv);
 
     // Increment nonce after encrypting. Each nonce should be used only once per key.
     cbsiv_increment_nonce(nonce, 1);
@@ -36,7 +36,7 @@ int main(void) {
     // Optional: Tamper with the ciphertext. Verification will fail.
     //ciphertext[0] = 0x00;
     
-    result = cbsiv_decrypt(&ctx, sizeof(plaintext), ciphertext, sizeof(ad), ad, message_nonce, iv, decrypted);
+    result = cbsiv_decrypt(&ctx, message_nonce, iv, sizeof(plaintext), ciphertext, sizeof(ad), ad, decrypted);
 
     switch(result) {
         case CBSIV_OK:

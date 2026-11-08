@@ -97,8 +97,8 @@ static inline void cbsiv_iv(
 }
 
 void cbsiv_init(
-    const cbsiv_master_key_t master_key,
-    cbsiv_ctx_t* ctx
+    cbsiv_ctx_t* ctx,
+    const cbsiv_master_key_t master_key
 ) {
     const uint8_t ENC_CTX[] = "kdf/enc";
     const uint8_t MAC_CTX[] = "kdf/mac";
@@ -132,11 +132,11 @@ void cbsiv_increment_nonce(
 
 cbsiv_res_t cbsiv_encrypt(
     const cbsiv_ctx_t* ctx,
+    const cbsiv_chacha20_nonce_t nonce,
     size_t plaintext_len,
     const uint8_t* plaintext,
     size_t ad_len,
     const uint8_t* ad,
-    const cbsiv_chacha20_nonce_t nonce,
     uint8_t* ciphertext,
     cbsiv_iv_t iv
 ) {
@@ -159,12 +159,12 @@ cbsiv_res_t cbsiv_encrypt(
 
 cbsiv_res_t cbsiv_decrypt(
     const cbsiv_ctx_t* ctx,
+    const cbsiv_chacha20_nonce_t nonce,
+    const cbsiv_iv_t iv,
     size_t ciphertext_len,
     const uint8_t* ciphertext,
     size_t ad_len,
     const uint8_t* ad,
-    const cbsiv_chacha20_nonce_t nonce,
-    const cbsiv_iv_t iv,
     uint8_t* plaintext
 ) {
     if(ciphertext_len != 0 && (ciphertext_len - 1) / CCS_CHACHA_BLOCKLEN > UINT32_MAX)

@@ -49,31 +49,55 @@ static void test_round_trip(
     fill_bytes(ad, sizeof(ad), 0x84U);
 
     CHECK(cbsiv_encrypt(
-        &ctx,
+        &ctx, nonce,
         plaintext_len, plaintext,
         ad_len, ad,
-        nonce,
         ciphertext, iv
     ) == CBSIV_OK);
 
     CHECK(cbsiv_decrypt(
-        &ctx,
+        &ctx, nonce, iv,
         plaintext_len, ciphertext,
         ad_len, ad,
-        nonce, iv,
         decrypted
     ) == CBSIV_OK);
     CHECK(memcmp(plaintext, decrypted, plaintext_len) == 0);
 
     CHECK(cbsiv_encrypt(
-        &ctx,
+        &ctx, nonce,
         plaintext_len, plaintext,
         ad_len, ad,
-        nonce,
         ciphertext_again, iv_again
     ) == CBSIV_OK);
     CHECK(memcmp(ciphertext, ciphertext_again, plaintext_len) == 0);
     CHECK(memcmp(iv, iv_again, sizeof(iv)) == 0);
+
+    memcpy(decrypted, plaintext, plaintext_len);
+    CHECK(cbsiv_encrypt(
+        &ctx, nonce,
+        plaintext_len, decrypted,
+        ad_len, ad,
+        decrypted, iv_again
+    ) == CBSIV_OK);
+    CHECK(memcmp(ciphertext, decrypted, plaintext_len) == 0);
+    CHECK(memcmp(iv, iv_again, sizeof(iv)) == 0);
+    CHECK(cbsiv_decrypt(
+        &ctx, nonce, iv_again,
+        plaintext_len, decrypted,
+        ad_len, ad,
+        decrypted
+    ) == CBSIV_OK);
+    CHECK(memcmp(plaintext, decrypted, plaintext_len) == 0);
+
+    memcpy(decrypted, ciphertext, plaintext_len);
+    iv_again[0] ^= 1U;
+    CHECK(cbsiv_decrypt(
+        &ctx, nonce, iv_again,
+        plaintext_len, decrypted,
+        ad_len, ad,
+        decrypted
+    ) == CBSIV_VERIFICATION_FAILED);
+    CHECK(all_zero(decrypted, plaintext_len));
 }
 
 static void test_round_trips(void) {
@@ -117,10 +141,9 @@ static void expect_verification_failure(
 
     memset(decrypted, 0xA5, sizeof(decrypted));
     CHECK(cbsiv_decrypt(
-        ctx,
+        ctx, nonce, iv,
         ciphertext_len, ciphertext,
         ad_len, ad,
-        nonce, iv,
         decrypted
     ) == CBSIV_VERIFICATION_FAILED);
     CHECK(all_zero(decrypted, ciphertext_len));
@@ -151,10 +174,9 @@ static void test_verification_failures(void) {
     fill_bytes(ad, sizeof(ad), 0x67U);
 
     CHECK(cbsiv_encrypt(
-        &ctx,
+        &ctx, nonce,
         sizeof(plaintext), plaintext,
         sizeof(ad), ad,
-        nonce,
         ciphertext, iv
     ) == CBSIV_OK);
 
@@ -205,17 +227,15 @@ static void test_empty_inputs(void) {
     fill_bytes(ad, sizeof(ad), 0x73U);
 
     CHECK(cbsiv_encrypt(
-        &ctx,
+        &ctx, nonce,
         0, &placeholder,
         sizeof(ad), ad,
-        nonce,
         &placeholder, iv
     ) == CBSIV_OK);
     CHECK(cbsiv_decrypt(
-        &ctx,
+        &ctx, nonce, iv,
         0, &placeholder,
         sizeof(ad), ad,
-        nonce, iv,
         &placeholder
     ) == CBSIV_OK);
 
@@ -254,17 +274,15 @@ static void test_length_limit(void) {
     make_context(&ctx, 0x19U);
 
     CHECK(cbsiv_encrypt(
-        &ctx,
+        &ctx, nonce,
         invalid_len, &placeholder,
         0, &placeholder,
-        nonce,
         &placeholder, iv
     ) == CBSIV_INVALID_LENGTH);
     CHECK(cbsiv_decrypt(
-        &ctx,
+        &ctx, nonce, iv,
         invalid_len, &placeholder,
         0, &placeholder,
-        nonce, iv,
         &placeholder
     ) == CBSIV_INVALID_LENGTH);
 #endif

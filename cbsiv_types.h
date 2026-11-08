@@ -4,17 +4,16 @@
 #include "stdint.h"
 #include "stddef.h"
 
-#if !defined(CBSIV_128) && !defined(CBSIV_256)
-    #define CBSIV_256
-#endif
-
 #ifdef CBSIV_128
     #define CBSIV_IVLEN 16
-#elif defined(CBSIV_256)
+#else
+    #ifndef CBSIV_256
+        #define CBSIV_256
+    #endif
     #define CBSIV_IVLEN 32
 #endif
 
-#define CBSIV_MASTER_KEYLEN    (32)
+#define CBSIV_MASTER_KEYLEN     (32)
 #define CBSIV_CHACHA20_KEYLEN   (32)
 #define CBSIV_CHACHA20_NONCELEN (12)
 #define CBSIV_BLAKE2S_KEYLEN    (32)

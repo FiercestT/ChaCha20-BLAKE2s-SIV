@@ -38,7 +38,7 @@ static inline void make_context(
     cbsiv_master_key_t key;
 
     fill_bytes(key, sizeof(key), seed);
-    cbsiv_init(key, ctx);
+    cbsiv_init(ctx, key);
 }
 
 static inline double seconds_since(clock_t start) {
@@ -51,12 +51,10 @@ static inline void print_timing(
     size_t iterations,
     double seconds
 ) {
-    const double microseconds = seconds * 1000000.0 / (double)iterations;
-
     if(plaintext_len == 0 || seconds == 0.0) {
         printf(
-            "%-24s %8zu B  %10.3f us/op\n",
-            operation, plaintext_len, microseconds
+            "%-24s %8zu B  %10.2f op/s\n",
+            operation, plaintext_len, (double)iterations / seconds
         );
         return;
     }
@@ -66,8 +64,8 @@ static inline void print_timing(
     ) / (1024.0 * 1024.0);
 
     printf(
-        "%-24s %8zu B  %10.3f us/op  %10.2f MiB/s\n",
-        operation, plaintext_len, microseconds, mib / seconds
+        "%-24s %8zu B  %10.2f MiB/s\n",
+        operation, plaintext_len, mib / seconds
     );
 }
 

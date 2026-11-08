@@ -6,12 +6,12 @@
 /**
  * @brief Derive encryption and MAC keys from a master key.
  *
- * @param master_key [CBSIV_MASTER_KEYLEN] The master key.
  * @param ctx The key context to initialize. Does not need to be zeroed before init.
+ * @param master_key [CBSIV_MASTER_KEYLEN] The master key.
  */
 void cbsiv_init(
-    const cbsiv_master_key_t master_key,
-    cbsiv_ctx_t* ctx
+    cbsiv_ctx_t* ctx,
+    const cbsiv_master_key_t master_key
 );
 
 /**
@@ -31,22 +31,22 @@ void cbsiv_increment_nonce(
  *        Set plaintext = ciphertext for in place encryption.
  *
  * @param ctx The initialized key context.
+ * @param nonce [CBSIV_CHACHA20_NONCELEN] The authenticated nonce. Use a unique nonce per message.
  * @param plaintext_len Byte length of the plaintext input.
  * @param plaintext [plaintext_len] The plaintext input buffer.
  * @param ad_len Byte length of the unencrypted, authenticated data.
  * @param ad [ad_len] The unencrypted, authenticated data buffer.
- * @param nonce [CBSIV_CHACHA20_NONCELEN] The authenticated nonce. Use a unique nonce per message.
  * @param ciphertext [plaintext_len] The ciphertext output buffer.
  * @param iv [CBSIV_IVLEN] The authentication IV output buffer. Store or transmit with the ciphertext.
  * @return CBSIV_OK on success or CBSIV_INVALID_LENGTH if the input exceeds 2^38 bytes and will cause a counter overflow.
  */
 cbsiv_res_t cbsiv_encrypt(
     const cbsiv_ctx_t* ctx,
+    const cbsiv_chacha20_nonce_t nonce,
     size_t plaintext_len,
     const uint8_t* plaintext,
     size_t ad_len,
     const uint8_t* ad,
-    const cbsiv_chacha20_nonce_t nonce,
     uint8_t* ciphertext,
     cbsiv_iv_t iv
 );
@@ -56,23 +56,23 @@ cbsiv_res_t cbsiv_encrypt(
  *        Set ciphertext = plaintext for in place decryption.
  *
  * @param ctx The initialized key context.
+ * @param nonce [CBSIV_CHACHA20_NONCELEN] The nonce used for encryption.
+ * @param iv [CBSIV_IVLEN] The authentication IV to verify.
  * @param ciphertext_len Byte length of the ciphertext input.
  * @param ciphertext [ciphertext_len] The ciphertext input buffer.
  * @param ad_len Byte length of the unencrypted, authenticated data.
  * @param ad [ad_len] The unencrypted, authenticated data buffer.
- * @param nonce [CBSIV_CHACHA20_NONCELEN] The nonce used for encryption.
- * @param iv [CBSIV_IVLEN] The authentication IV to verify.
  * @param plaintext [ciphertext_len] The plaintext output buffer. Zeroed if IV verification fails.
  * @return CBSIV_OK on success, CBSIV_VERIFICATION_FAILED if IV verification fails, or CBSIV_INVALID_LENGTH if the input exceeds 2^38 bytes and will cause a counter overflow.
  */
 cbsiv_res_t cbsiv_decrypt(
     const cbsiv_ctx_t* ctx,
+    const cbsiv_chacha20_nonce_t nonce,
+    const cbsiv_iv_t iv,
     size_t ciphertext_len,
     const uint8_t* ciphertext,
     size_t ad_len,
     const uint8_t* ad,
-    const cbsiv_chacha20_nonce_t nonce,
-    const cbsiv_iv_t iv,
     uint8_t* plaintext
 );
 

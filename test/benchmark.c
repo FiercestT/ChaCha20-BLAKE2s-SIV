@@ -69,7 +69,6 @@ static int benchmark_size(
     const size_t ITERATIONS = benchmark_iterations(plaintext_len);
     uint8_t* const plaintext = malloc(ALLOCATION_SIZE);
     uint8_t* const ciphertext = malloc(ALLOCATION_SIZE);
-    uint8_t* const changed_ciphertext = malloc(ALLOCATION_SIZE);
     uint8_t* const decrypted = malloc(ALLOCATION_SIZE);
     cbsiv_chacha20_nonce_t nonce;
     uint8_t ad[AD_LEN];
@@ -83,7 +82,6 @@ static int benchmark_size(
     if(
         plaintext == NULL ||
         ciphertext == NULL ||
-        changed_ciphertext == NULL ||
         decrypted == NULL
     ) {
         fprintf(
@@ -96,16 +94,14 @@ static int benchmark_size(
 
     fill_bytes(plaintext, plaintext_len, 0x31U);
     memset(ciphertext, 0, ALLOCATION_SIZE);
-    memset(changed_ciphertext, 0, ALLOCATION_SIZE);
     memset(decrypted, 0, ALLOCATION_SIZE);
     fill_bytes(nonce, sizeof(nonce), 0x53U);
     fill_bytes(ad, sizeof(ad), 0x75U);
 
     result = cbsiv_encrypt(
-        ctx,
+        ctx, nonce,
         plaintext_len, plaintext,
         sizeof(ad), ad,
-        nonce,
         ciphertext, iv
     );
     if(result != CBSIV_OK) {
@@ -118,10 +114,9 @@ static int benchmark_size(
     }
 
     result = cbsiv_decrypt(
-        ctx,
+        ctx, nonce, iv,
         plaintext_len, ciphertext,
         sizeof(ad), ad,
-        nonce, iv,
         decrypted
     );
     if(result != CBSIV_OK || memcmp(plaintext, decrypted, plaintext_len) != 0) {
@@ -133,10 +128,9 @@ static int benchmark_size(
     start = benchmark_now();
     for(size_t i = 0; i < ITERATIONS; i++) {
         result = cbsiv_encrypt(
-            ctx,
+            ctx, nonce,
             plaintext_len, plaintext,
             sizeof(ad), ad,
-            nonce,
             ciphertext, iv
         );
         benchmark_sink += (uint32_t)result + ciphertext[0] + iv[0];
@@ -152,10 +146,9 @@ static int benchmark_size(
     start = benchmark_now();
     for(size_t i = 0; i < ITERATIONS; i++) {
         result = cbsiv_decrypt(
-            ctx,
+            ctx, nonce, iv,
             plaintext_len, ciphertext,
             sizeof(ad), ad,
-            nonce, iv,
             decrypted
         );
         benchmark_sink += (uint32_t)result + decrypted[0];
@@ -176,16 +169,15 @@ static int benchmark_size(
     start = benchmark_now();
     for(size_t i = 0; i < ITERATIONS; i++) {
         result = cbsiv_decrypt(
-            ctx,
+            ctx, nonce, changed_iv,
             plaintext_len, ciphertext,
             sizeof(ad), ad,
-            nonce, changed_iv,
             decrypted
         );
         benchmark_sink += (uint32_t)result + decrypted[0];
     }
     elapsed = benchmark_now() - start;
-    print_timing("decrypt/bad tag", plaintext_len, ITERATIONS, elapsed);
+    print_timing("decrypt/verify failed", plaintext_len, ITERATIONS, elapsed);
     if(result != CBSIV_VERIFICATION_FAILED) {
         fprintf(
             stderr, "bad tag unexpectedly verified for %zu bytes\n",
@@ -195,41 +187,9 @@ static int benchmark_size(
         goto cleanup;
     }
 
-    if(plaintext_len != 0) {
-        memcpy(changed_ciphertext, ciphertext, plaintext_len);
-        changed_ciphertext[plaintext_len / 2] ^= 0x80U;
-
-        start = benchmark_now();
-        for(size_t i = 0; i < ITERATIONS; i++) {
-            result = cbsiv_decrypt(
-                ctx,
-                plaintext_len, changed_ciphertext,
-                sizeof(ad), ad,
-                nonce, iv,
-                decrypted
-            );
-            benchmark_sink += (uint32_t)result + decrypted[0];
-        }
-        elapsed = benchmark_now() - start;
-        print_timing(
-            "decrypt/bad ciphertext",
-            plaintext_len, ITERATIONS, elapsed
-        );
-        if(result != CBSIV_VERIFICATION_FAILED) {
-            fprintf(
-                stderr,
-                "bad ciphertext unexpectedly verified for %zu bytes\n",
-                plaintext_len
-            );
-            ret = 1;
-            goto cleanup;
-        }
-    }
-
 cleanup:
     free(plaintext);
     free(ciphertext);
-    free(changed_ciphertext);
     free(decrypted);
     return ret;
 }
@@ -245,7 +205,7 @@ static void benchmark_initialization(void) {
     fill_bytes(key, sizeof(key), 0x17U);
     start = benchmark_now();
     for(size_t i = 0; i < ITERATIONS; i++) {
-        cbsiv_init(key, &ctx);
+        cbsiv_init(&ctx, key);
         benchmark_sink += ctx.enc_key[0] + ctx.mac_key[0];
     }
     elapsed = benchmark_now() - start;
@@ -283,7 +243,7 @@ int main(void) {
     printf("timer: clock (1/%ld second)\n", (long)CLOCKS_PER_SEC);
 #endif
     printf("single thread, hot cache; includes setup and finalization\n\n");
-    printf("%-24s %10s  %16s  %16s\n", "OPERATION", "PLAINTEXT", "TIME", "THROUGHPUT");
+    printf("%-24s %10s  %16s\n", "OPERATION", "PLAINTEXT", "THROUGHPUT");
     benchmark_initialization();
 
     for(size_t i = 0; i < sizeof(SIZES) / sizeof(SIZES[0]); i++) {
